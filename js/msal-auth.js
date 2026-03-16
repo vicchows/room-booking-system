@@ -32,7 +32,6 @@ const MSALAuth = {
 
     if (typeof msal === 'undefined') {
       console.warn('MSAL.js not loaded. Running in demo mode.');
-      DEMO_MODE = true;
       this.isInitialized = true;
       this._restoreSession();
       return;
