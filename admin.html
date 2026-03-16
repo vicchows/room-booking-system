@@ -32,6 +32,23 @@
       cursor: pointer; border-radius: var(--border-radius);
     }
     .multi-select-item:hover { background: var(--gray-100); }
+    .settings-section { margin-bottom: 2rem; }
+    .settings-section-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--gray-800); }
+    .settings-help-text { color: var(--gray-500); font-size: 0.875rem; margin-bottom: 1rem; }
+    .settings-warning {
+      background: var(--warning-light);
+      border: 1px solid var(--warning);
+      border-radius: var(--border-radius);
+      padding: var(--space-3) var(--space-4);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      color: var(--warning);
+    }
+    .settings-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: 1rem; }
+    .settings-divider { border: none; border-top: 1px solid var(--gray-200); margin: 2rem 0; }
+    .settings-test-result { margin-top: 0.75rem; font-size: 0.875rem; }
+    .settings-test-email { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200); }
+    .settings-test-email h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
@@ -46,6 +63,7 @@
       <a class="nav-link active" href="admin.html" data-i18n="admin">Admin</a>
     </div>
     <div class="navbar-actions">
+      <div id="theme-switcher"></div>
       <div id="lang-switcher"></div>
       <div id="nav-user-info" class="nav-user-info" style="display:none"></div>
       <button id="btn-login-m365" class="btn btn-primary btn-sm" onclick="MSALAuth.login()">
@@ -72,6 +90,7 @@
     <button class="tab-btn" data-tab="employees" onclick="ADMIN.showTab('employees')">👤 <span data-i18n="employees">Employees</span></button>
     <button class="tab-btn" data-tab="equipment" onclick="ADMIN.showTab('equipment')">🔧 <span data-i18n="equipmentTab">Equipment</span></button>
     <button class="tab-btn" data-tab="bookings" onclick="ADMIN.showTab('bookings')">📅 <span data-i18n="bookings">Bookings</span></button>
+    <button class="tab-btn" data-tab="settings" onclick="ADMIN.showTab('settings')">⚙️ <span data-i18n="settingsTab">Settings</span></button>
   </div>
 
   <!-- Tab Panels -->
@@ -81,6 +100,7 @@
   <div id="tab-employees" class="tab-panel"></div>
   <div id="tab-equipment" class="tab-panel"></div>
   <div id="tab-bookings" class="tab-panel"></div>
+  <div id="tab-settings" class="tab-panel"></div>
 </div>
 
 <!-- Scripts -->
@@ -128,6 +148,7 @@ const ADMIN = {
       case 'employees': this.renderEmployees(panel); break;
       case 'equipment': this.renderEquipment(panel); break;
       case 'bookings': this.renderBookings(panel); break;
+      case 'settings': this._renderSettingsTab(); break;
     }
   },
 
@@ -558,6 +579,196 @@ const ADMIN = {
 
   _val(item, key, def = '') {
     return item ? (item[key] !== undefined ? item[key] : def) : def;
+  },
+
+  _esc(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
+
+  // ─── Settings Tab ──────────────────────────────────────────────
+
+  _renderSettingsTab() {
+    const panel = document.getElementById('tab-settings');
+    if (!panel) return;
+    const entraDefaults = {
+      tenantId: 'YOUR_TENANT_ID_HERE',
+      clientId: 'YOUR_CLIENT_ID_HERE',
+      redirectUri: window.location.origin + '/index.html',
+      scopes: 'User.Read openid profile email',
+      demoMode: true,
+    };
+    const smtpDefaults = {
+      host: '',
+      port: '587',
+      encryption: 'STARTTLS',
+      username: '',
+      password: '',
+      fromName: 'Room Booking System',
+      fromEmail: 'noreply@example.com',
+    };
+    const entra = Object.assign({}, entraDefaults, JSON.parse(localStorage.getItem('rbs_entra_config') || '{}'));
+    const smtp = Object.assign({}, smtpDefaults, JSON.parse(localStorage.getItem('rbs_smtp_config') || '{}'));
+
+    panel.innerHTML = `
+      <div class="settings-section">
+        <h2 class="settings-section-title">🔐 <span data-i18n="entraIdSettings">${I18N.t('entraIdSettings')}</span></h2>
+        <p class="settings-help-text" data-i18n="demoModeHelp">${I18N.t('demoModeHelp')}</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label data-i18n="tenantId">${I18N.t('tenantId')}</label>
+            <input type="text" id="entra-tenantId" class="form-control" value="${this._esc(entra.tenantId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+          </div>
+          <div class="form-group">
+            <label data-i18n="clientId">${I18N.t('clientId')}</label>
+            <input type="text" id="entra-clientId" class="form-control" value="${this._esc(entra.clientId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+          </div>
+          <div class="form-group form-group-full">
+            <label data-i18n="redirectUri">${I18N.t('redirectUri')}</label>
+            <input type="text" id="entra-redirectUri" class="form-control" value="${this._esc(entra.redirectUri)}">
+          </div>
+          <div class="form-group form-group-full">
+            <label data-i18n="scopes">${I18N.t('scopes')}</label>
+            <input type="text" id="entra-scopes" class="form-control" value="${this._esc(entra.scopes)}">
+          </div>
+          <div class="form-group form-group-full">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+              <input type="checkbox" id="entra-demoMode" ${entra.demoMode ? 'checked' : ''}>
+              <span data-i18n="demoMode">${I18N.t('demoMode')}</span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary" onclick="ADMIN._saveEntraSettings()">💾 <span data-i18n="saveSettings">${I18N.t('saveSettings')}</span></button>
+          <button class="btn btn-secondary" onclick="ADMIN._resetEntraSettings()">🔄 <span data-i18n="resetSettings">${I18N.t('resetSettings')}</span></button>
+          <button class="btn btn-outline" onclick="ADMIN._testLogin()">🔐 <span data-i18n="testLogin">${I18N.t('testLogin')}</span></button>
+        </div>
+        <div id="entra-test-result" class="settings-test-result"></div>
+      </div>
+
+      <hr class="settings-divider">
+
+      <div class="settings-section">
+        <h2 class="settings-section-title">📧 <span data-i18n="smtpSettings">${I18N.t('smtpSettings')}</span></h2>
+        <div class="settings-warning" data-i18n="smtpSecurityWarning">${I18N.t('smtpSecurityWarning')}</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label data-i18n="smtpHost">${I18N.t('smtpHost')}</label>
+            <input type="text" id="smtp-host" class="form-control" value="${this._esc(smtp.host)}" placeholder="smtp.example.com">
+          </div>
+          <div class="form-group">
+            <label data-i18n="smtpPort">${I18N.t('smtpPort')}</label>
+            <input type="number" id="smtp-port" class="form-control" value="${this._esc(smtp.port)}" placeholder="587">
+          </div>
+          <div class="form-group">
+            <label data-i18n="smtpEncryption">${I18N.t('smtpEncryption')}</label>
+            <select id="smtp-encryption" class="form-control">
+              <option value="None" ${smtp.encryption === 'None' ? 'selected' : ''} data-i18n="encryptionNone">${I18N.t('encryptionNone')}</option>
+              <option value="SSL" ${smtp.encryption === 'SSL' ? 'selected' : ''}>SSL</option>
+              <option value="TLS" ${smtp.encryption === 'TLS' ? 'selected' : ''}>TLS</option>
+              <option value="STARTTLS" ${smtp.encryption === 'STARTTLS' ? 'selected' : ''}>STARTTLS</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="smtpUsername">${I18N.t('smtpUsername')}</label>
+            <input type="text" id="smtp-username" class="form-control" autocomplete="off" value="${this._esc(smtp.username)}">
+          </div>
+          <div class="form-group">
+            <label data-i18n="smtpPassword">${I18N.t('smtpPassword')}</label>
+            <input type="password" id="smtp-password" class="form-control" autocomplete="off" value="${this._esc(smtp.password)}">
+          </div>
+          <div class="form-group">
+            <label data-i18n="smtpFromName">${I18N.t('smtpFromName')}</label>
+            <input type="text" id="smtp-fromName" class="form-control" value="${this._esc(smtp.fromName)}">
+          </div>
+          <div class="form-group">
+            <label data-i18n="smtpFromEmail">${I18N.t('smtpFromEmail')}</label>
+            <input type="email" id="smtp-fromEmail" class="form-control" value="${this._esc(smtp.fromEmail)}">
+          </div>
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary" onclick="ADMIN._saveSMTPSettings()">💾 <span data-i18n="saveSettings">${I18N.t('saveSettings')}</span></button>
+          <button class="btn btn-secondary" onclick="ADMIN._resetSMTPSettings()">🔄 <span data-i18n="resetSettings">${I18N.t('resetSettings')}</span></button>
+        </div>
+
+        <div class="settings-test-email">
+          <h3 data-i18n="testEmail">${I18N.t('testEmail')}</h3>
+          <div class="form-group" style="max-width:400px">
+            <label data-i18n="testEmailRecipient">${I18N.t('testEmailRecipient')}</label>
+            <input type="email" id="smtp-test-email" class="form-control" placeholder="test@example.com">
+          </div>
+          <button class="btn btn-outline" onclick="ADMIN._sendTestEmail()">📤 <span data-i18n="testEmailSend">${I18N.t('testEmailSend')}</span></button>
+        </div>
+      </div>
+    `;
+  },
+
+  _saveEntraSettings() {
+    const config = {
+      tenantId: document.getElementById('entra-tenantId').value,
+      clientId: document.getElementById('entra-clientId').value,
+      redirectUri: document.getElementById('entra-redirectUri').value,
+      scopes: document.getElementById('entra-scopes').value,
+      demoMode: document.getElementById('entra-demoMode').checked,
+    };
+    localStorage.setItem('rbs_entra_config', JSON.stringify(config));
+    APP.showToast(I18N.t('settingsSaved'), 'success');
+  },
+
+  _resetEntraSettings() {
+    localStorage.removeItem('rbs_entra_config');
+    this._renderSettingsTab();
+    APP.showToast(I18N.t('settingsReset'), 'info');
+  },
+
+  async _testLogin() {
+    const resultEl = document.getElementById('entra-test-result');
+    if (resultEl) resultEl.innerHTML = '<span style="color:var(--gray-500)">Testing...</span>';
+    try {
+      await MSALAuth.login();
+      const session = DB.getSession();
+      if (session) {
+        if (resultEl) resultEl.innerHTML = `<span style="color:var(--success)">✅ ${I18N.t('testLoginSuccess')} (${session.employeeName})</span>`;
+      } else {
+        if (resultEl) resultEl.innerHTML = `<span style="color:var(--warning)">⚠️ Login dialog shown. Check result above.</span>`;
+      }
+    } catch (e) {
+      if (resultEl) resultEl.innerHTML = `<span style="color:var(--danger)">❌ ${I18N.t('testLoginFailed')}: ${e.message}</span>`;
+    }
+  },
+
+  _saveSMTPSettings() {
+    const config = {
+      host: document.getElementById('smtp-host').value,
+      port: document.getElementById('smtp-port').value,
+      encryption: document.getElementById('smtp-encryption').value,
+      username: document.getElementById('smtp-username').value,
+      password: document.getElementById('smtp-password').value,
+      fromName: document.getElementById('smtp-fromName').value,
+      fromEmail: document.getElementById('smtp-fromEmail').value,
+    };
+    localStorage.setItem('rbs_smtp_config', JSON.stringify(config));
+    APP.showToast(I18N.t('settingsSaved'), 'success');
+  },
+
+  _resetSMTPSettings() {
+    localStorage.removeItem('rbs_smtp_config');
+    this._renderSettingsTab();
+    APP.showToast(I18N.t('settingsReset'), 'info');
+  },
+
+  _sendTestEmail() {
+    const recipient = document.getElementById('smtp-test-email')?.value;
+    if (!recipient) {
+      APP.showToast(I18N.t('fieldRequired'), 'error');
+      return;
+    }
+    const smtp = JSON.parse(localStorage.getItem('rbs_smtp_config') || '{}');
+    const fromName = smtp.fromName || I18N.t('appName');
+    const fromEmail = smtp.fromEmail || 'noreply@example.com';
+    const subject = `[${I18N.t('appName')}] Test Email ${I18N.t('smtpSimulated')}`;
+    const body = `${I18N.t('appName')}\n${'='.repeat(50)}\n\nThis is a test email sent from the admin panel.\n\nSMTP Configuration (Simulated):\n  Host: ${smtp.host || 'N/A'}\n  Port: ${smtp.port || 'N/A'}\n  Encryption: ${smtp.encryption || 'N/A'}\n  From: ${fromName} <${fromEmail}>\n\n${I18N.t('smtpSimulated')}\n\n---\n${I18N.t('appName')}`;
+    EMAIL._send([recipient], subject, body);
+    APP.showToast(I18N.t('testEmail') + ' → ' + recipient, 'success');
   },
 
   _companyForm(item) {

@@ -242,7 +242,8 @@ ${t('appName')}
           <button class="modal-close" onclick="document.getElementById('email-modal').remove()">×</button>
         </div>
         <div class="modal-body">
-          <div class="email-field"><strong>To:</strong> ${recipients.join(', ')}</div>
+          <div class="email-field"><strong>${I18N.t('to') || 'To'}:</strong> ${recipients.join(', ')}</div>
+          ${this._getSmtpFromHtml()}
           <div class="email-field"><strong>Subject:</strong> ${subject}</div>
           <hr>
           <pre class="email-body">${this._escapeHtml(body)}</pre>
@@ -250,7 +251,7 @@ ${t('appName')}
         <div class="modal-footer">
           <a href="mailto:${recipients.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}"
              class="btn btn-primary" target="_blank">
-            📤 ${I18N.t('loginM365') ? 'Open in Email Client' : 'Open'}
+            📤 ${I18N.t('openEmailClient')}
           </a>
           <button class="btn btn-secondary" onclick="document.getElementById('email-modal').remove()">
             ${I18N.t('closeModal')}
@@ -264,6 +265,15 @@ ${t('appName')}
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
+  },
+
+  _getSmtpFromHtml() {
+    const smtp = JSON.parse(localStorage.getItem('rbs_smtp_config') || '{}');
+    if (smtp.fromEmail) {
+      const fromName = smtp.fromName || I18N.t('appName');
+      return `<div class="email-field" style="color:var(--info)"><strong>From:</strong> ${fromName} &lt;${smtp.fromEmail}&gt; ${I18N.t('smtpSimulated')}</div>`;
+    }
+    return '';
   },
 
   _escapeHtml(text) {

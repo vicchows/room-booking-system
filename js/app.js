@@ -13,10 +13,66 @@ const APP = {
     I18N.init();
     // Initialize MSAL
     MSALAuth.init();
+    // Initialize theme
+    this.initTheme();
     // Render language switcher
     this.renderLangSwitcher();
     // Apply translations
     I18N.applyToPage();
+  },
+
+  /**
+   * Initialize theme from localStorage or system preference
+   */
+  initTheme() {
+    const saved = localStorage.getItem('rbs_theme') || 'system';
+    this.applyTheme(saved);
+    // Watch for system preference changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if ((localStorage.getItem('rbs_theme') || 'system') === 'system') {
+        this.applyTheme('system');
+      }
+    });
+  },
+
+  /**
+   * Apply theme: 'light' | 'dark' | 'system'
+   */
+  applyTheme(mode) {
+    localStorage.setItem('rbs_theme', mode);
+    let isDark = false;
+    if (mode === 'dark') isDark = true;
+    else if (mode === 'system') isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    // Update toggle buttons
+    document.querySelectorAll('.theme-option').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-theme-mode') === mode);
+    });
+    document.querySelectorAll('#current-theme-icon').forEach(el => {
+      el.textContent = mode === 'dark' ? '🌙' : mode === 'light' ? '☀️' : '💻';
+    });
+  },
+
+  /**
+   * Render theme toggle in nav
+   */
+  renderThemeToggle() {
+    const container = document.getElementById('theme-switcher');
+    if (!container) return;
+    const saved = localStorage.getItem('rbs_theme') || 'system';
+    const icons = { light: '☀️', dark: '🌙', system: '💻' };
+    container.innerHTML = `
+      <div class="theme-dropdown">
+        <button class="theme-toggle btn btn-ghost" aria-label="Theme">
+          <span id="current-theme-icon">${icons[saved] || '💻'}</span>
+        </button>
+        <div class="theme-menu">
+          <button class="theme-option${saved === 'light' ? ' active' : ''}" data-theme-mode="light" onclick="APP.applyTheme('light')">☀️ <span data-i18n="themeLight">Light</span></button>
+          <button class="theme-option${saved === 'dark' ? ' active' : ''}" data-theme-mode="dark" onclick="APP.applyTheme('dark')">🌙 <span data-i18n="themeDark">Dark</span></button>
+          <button class="theme-option${saved === 'system' ? ' active' : ''}" data-theme-mode="system" onclick="APP.applyTheme('system')">💻 <span data-i18n="themeSystem">System</span></button>
+        </div>
+      </div>
+    `;
   },
 
   /**
@@ -44,6 +100,7 @@ const APP = {
       </div>
     `;
     container.innerHTML = html;
+    this.renderThemeToggle();
   },
 
   /**
@@ -52,9 +109,13 @@ const APP = {
   switchLanguage(lang) {
     I18N.setLanguage(lang);
     this.renderLangSwitcher();
+    // Fire languagechange event
+    document.dispatchEvent(new CustomEvent('languagechange', { detail: { lang } }));
     // Re-render dynamic content if needed
     if (window.CALENDAR && typeof CALENDAR.render === 'function') CALENDAR.render();
     if (window.BOOKING && typeof BOOKING.onLangChange === 'function') BOOKING.onLangChange();
+    if (window.REPORTS && typeof REPORTS.onLangChange === 'function') REPORTS.onLangChange();
+    if (window.HOME && typeof HOME.renderRooms === 'function' && HOME.selectedCompany) HOME.renderRooms(HOME.selectedCompany);
     // Update page title
     document.title = I18N.t('appName');
   },

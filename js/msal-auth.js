@@ -11,9 +11,16 @@
  */
 
 // ─── Configuration ────────────────────────────────────────────────────────────
-const MSAL_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';     // Replace with your Azure AD App client ID
-const MSAL_TENANT_ID = 'YOUR_TENANT_ID_HERE';     // Replace with your Azure AD tenant ID
-const DEMO_MODE = true;                             // Set to false when using real Azure AD credentials
+function _getMSALConfig() {
+  const saved = JSON.parse(localStorage.getItem('rbs_entra_config') || '{}');
+  return {
+    clientId: saved.clientId || 'YOUR_CLIENT_ID_HERE',
+    tenantId: saved.tenantId || 'YOUR_TENANT_ID_HERE',
+    redirectUri: saved.redirectUri || (window.location.origin + window.location.pathname),
+    scopes: (saved.scopes || 'User.Read openid profile email').split(' ').filter(Boolean),
+    demoMode: saved.demoMode !== undefined ? saved.demoMode : true,
+  };
+}
 
 // ─── MSAL Auth Module ─────────────────────────────────────────────────────────
 const MSALAuth = {
@@ -24,7 +31,8 @@ const MSALAuth = {
    * Initialize MSAL - called once on page load
    */
   async init() {
-    if (DEMO_MODE) {
+    const cfg = _getMSALConfig();
+    if (cfg.demoMode) {
       this.isInitialized = true;
       this._restoreSession();
       return;
@@ -39,9 +47,9 @@ const MSALAuth = {
 
     const msalConfig = {
       auth: {
-        clientId: MSAL_CLIENT_ID,
-        authority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
-        redirectUri: window.location.origin + window.location.pathname,
+        clientId: cfg.clientId,
+        authority: `https://login.microsoftonline.com/${cfg.tenantId}`,
+        redirectUri: cfg.redirectUri,
       },
       cache: {
         cacheLocation: 'localStorage',
@@ -70,7 +78,8 @@ const MSALAuth = {
    * Login with Microsoft 365
    */
   async login() {
-    if (DEMO_MODE) {
+    const cfg = _getMSALConfig();
+    if (cfg.demoMode) {
       this._showDemoLoginDialog();
       return;
     }
@@ -81,7 +90,7 @@ const MSALAuth = {
     }
 
     const loginRequest = {
-      scopes: ['User.Read', 'openid', 'profile', 'email'],
+      scopes: cfg.scopes,
     };
 
     try {
@@ -104,10 +113,11 @@ const MSALAuth = {
    * Logout
    */
   async logout() {
+    const cfg = _getMSALConfig();
     DB.clearSession();
     this._updateNavBar();
 
-    if (!DEMO_MODE && this.msalInstance) {
+    if (!cfg.demoMode && this.msalInstance) {
       const account = this.msalInstance.getAllAccounts()[0];
       if (account) {
         await this.msalInstance.logoutPopup({ account });
