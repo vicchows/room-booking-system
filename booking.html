@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking - Room Booking System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a class="navbar-brand" href="index.html">🏢 <span data-i18n="appName">Room Booking System</span></a>
+    <div class="navbar-nav">
+      <a class="nav-link" href="index.html" data-i18n="home">Home</a>
+      <a class="nav-link" href="reports.html" data-i18n="reports">Reports</a>
+      <a class="nav-link" href="admin.html" data-i18n="admin">Admin</a>
+    </div>
+    <div class="navbar-actions">
+      <div id="lang-switcher"></div>
+      <div id="nav-user-info" class="nav-user-info" style="display:none"></div>
+      <button id="btn-login-m365" class="btn btn-primary btn-sm" onclick="MSALAuth.login()">
+        🔐 <span data-i18n="loginM365">Login with Microsoft 365</span>
+      </button>
+      <button id="btn-logout" class="btn btn-secondary btn-sm" onclick="MSALAuth.logout()" style="display:none">
+        <span data-i18n="logout">Logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+  <button class="back-link" onclick="history.back()">← <span data-i18n="backToHome">Back</span></button>
+  <div id="booking-container"></div>
+</div>
+
+<!-- Scripts -->
+<script src="data/sample-data.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/email.js"></script>
+<script src="js/msal-auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/booking.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    BOOKING.init();
+  });
+</script>
+</body>
+</html>

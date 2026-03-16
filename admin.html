@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Room Booking System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 1rem;
+    }
+    .admin-modal {
+      background: var(--white);
+      border-radius: var(--border-radius-xl);
+      box-shadow: var(--shadow-xl);
+      max-width: 700px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .multi-select-list {
+      border: 1px solid var(--gray-300);
+      border-radius: var(--border-radius);
+      max-height: 180px;
+      overflow-y: auto;
+      padding: var(--space-2);
+    }
+    .multi-select-item {
+      display: flex; align-items: center;
+      gap: var(--space-2); padding: var(--space-2);
+      cursor: pointer; border-radius: var(--border-radius);
+    }
+    .multi-select-item:hover { background: var(--gray-100); }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a class="navbar-brand" href="index.html">🏢 <span data-i18n="appName">Room Booking System</span></a>
+    <div class="navbar-nav">
+      <a class="nav-link" href="index.html" data-i18n="home">Home</a>
+      <a class="nav-link" href="reports.html" data-i18n="reports">Reports</a>
+      <a class="nav-link active" href="admin.html" data-i18n="admin">Admin</a>
+    </div>
+    <div class="navbar-actions">
+      <div id="lang-switcher"></div>
+      <div id="nav-user-info" class="nav-user-info" style="display:none"></div>
+      <button id="btn-login-m365" class="btn btn-primary btn-sm" onclick="MSALAuth.login()">
+        🔐 <span data-i18n="loginM365">Login</span>
+      </button>
+      <button id="btn-logout" class="btn btn-secondary btn-sm" onclick="MSALAuth.logout()" style="display:none">
+        <span data-i18n="logout">Logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+  <div class="page-header">
+    <h1 class="page-title">⚙️ <span data-i18n="adminPanel">Admin Panel</span></h1>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="companies" onclick="ADMIN.showTab('companies')">🏢 <span data-i18n="companies">Companies</span></button>
+    <button class="tab-btn" data-tab="rooms" onclick="ADMIN.showTab('rooms')">🚪 <span data-i18n="rooms">Rooms</span></button>
+    <button class="tab-btn" data-tab="departments" onclick="ADMIN.showTab('departments')">🏗️ <span data-i18n="departments">Departments</span></button>
+    <button class="tab-btn" data-tab="employees" onclick="ADMIN.showTab('employees')">👤 <span data-i18n="employees">Employees</span></button>
+    <button class="tab-btn" data-tab="equipment" onclick="ADMIN.showTab('equipment')">🔧 <span data-i18n="equipmentTab">Equipment</span></button>
+    <button class="tab-btn" data-tab="bookings" onclick="ADMIN.showTab('bookings')">📅 <span data-i18n="bookings">Bookings</span></button>
+  </div>
+
+  <!-- Tab Panels -->
+  <div id="tab-companies" class="tab-panel active"></div>
+  <div id="tab-rooms" class="tab-panel"></div>
+  <div id="tab-departments" class="tab-panel"></div>
+  <div id="tab-employees" class="tab-panel"></div>
+  <div id="tab-equipment" class="tab-panel"></div>
+  <div id="tab-bookings" class="tab-panel"></div>
+</div>
+
+<!-- Scripts -->
+<script src="data/sample-data.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/email.js"></script>
+<script src="js/msal-auth.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+/**
+ * ADMIN - Admin Panel CRUD Logic
+ */
+const ADMIN = {
+  activeTab: 'companies',
+  searchTerms: {},
+  editingId: null,
+  editingEntity: null,
+
+  init() {
+    APP.init();
+    document.title = `${I18N.t('adminPanel')} - ${I18N.t('appName')}`;
+    this.showTab('companies');
+  },
+
+  showTab(tab) {
+    this.activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-tab') === tab);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.classList.toggle('active', p.id === `tab-${tab}`);
+    });
+    this.renderTab(tab);
+  },
+
+  renderTab(tab) {
+    const panel = document.getElementById(`tab-${tab}`);
+    if (!panel) return;
+    switch(tab) {
+      case 'companies': this.renderCompanies(panel); break;
+      case 'rooms': this.renderRooms(panel); break;
+      case 'departments': this.renderDepartments(panel); break;
+      case 'employees': this.renderEmployees(panel); break;
+      case 'equipment': this.renderEquipment(panel); break;
+      case 'bookings': this.renderBookings(panel); break;
+    }
+  },
+
+  // ── Search helper ───────────────────────────────────────────────
+  _filterData(data, fields, search) {
+    if (!search) return data;
+    const q = search.toLowerCase();
+    return data.filter(item =>
+      fields.some(f => item[f] && String(item[f]).toLowerCase().includes(q))
+    );
+  },
+
+  _toolbar(entity, searchPlaceholder) {
+    const term = this.searchTerms[entity] || '';
+    return `
+      <div class="table-toolbar">
+        <input type="text" class="search-input" placeholder="${searchPlaceholder}"
+               value="${term}"
+               oninput="ADMIN.searchTerms['${entity}']=this.value; ADMIN.renderTab('${entity}')">
+        <button class="btn btn-primary" onclick="ADMIN.openForm('${entity}', null)">
+          + ${I18N.t('addNew')}
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="ADMIN.resetData()" style="margin-left:auto" title="Reset to sample data">
+          🔄 Reset Data
+        </button>
+      </div>
+    `;
+  },
+
+  resetData() {
+    if (APP.confirm('Reset all data to sample data? This cannot be undone.')) {
+      DB.reset();
+      this.renderTab(this.activeTab);
+      APP.showToast('Data reset to sample data', 'info');
+    }
+  },
+
+  // ── Companies ───────────────────────────────────────────────────
+  renderCompanies(panel) {
+    const search = this.searchTerms['companies'] || '';
+    let data = this._filterData(DB.getAll('companies'), ['name', 'country', 'address'], search);
+    const countryMap = { HK: '🇭🇰 Hong Kong', TH: '🇹🇭 Thailand', KH: '🇰🇭 Cambodia', FR: '🇫🇷 France', ES: '🇪🇸 Spain' };
+
+    panel.innerHTML = this._toolbar('companies', I18N.t('search')) + `
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>${I18N.t('name')}</th>
+            <th>${I18N.t('country')}</th>
+            <th>${I18N.t('address')}</th>
+            <th>${I18N.t('adminEmail')}</th>
+            <th>${I18N.t('actions')}</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(c => `
+              <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${countryMap[c.country] || c.country}</td>
+                <td>${c.address}</td>
+                <td>${c.adminEmail}</td>
+                <td class="actions-cell">
+                  <button class="btn btn-sm btn-outline" onclick="ADMIN.openForm('companies', '${c.id}')">✏️</button>
+                  <button class="btn btn-sm btn-danger" onclick="ADMIN.deleteItem('companies', '${c.id}')">🗑️</button>
+                </td>
+              </tr>
+            `).join('') || `<tr><td colspan="5" class="no-data">${I18N.t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  // ── Rooms ────────────────────────────────────────────────────────
+  renderRooms(panel) {
+    const search = this.searchTerms['rooms'] || '';
+    let data = this._filterData(DB.getAll('rooms'), ['name', 'location', 'description'], search);
+    const companies = DB.getAll('companies');
+    const allEquip = DB.getAll('equipment');
+
+    panel.innerHTML = this._toolbar('rooms', I18N.t('search')) + `
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>${I18N.t('name')}</th>
+            <th>${I18N.t('company')}</th>
+            <th>${I18N.t('location')}</th>
+            <th>${I18N.t('capacity')}</th>
+            <th>${I18N.t('equipment')}</th>
+            <th>${I18N.t('actions')}</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(r => {
+              const company = companies.find(c => c.id === r.companyId);
+              const equip = (r.equipment||[]).map(eId => {
+                const eq = allEquip.find(e => e.id === eId);
+                return eq ? eq.icon : '';
+              }).join(' ');
+              return `
+                <tr>
+                  <td><strong>${r.name}</strong></td>
+                  <td>${company ? company.name : r.companyId}</td>
+                  <td>${r.location}</td>
+                  <td>${r.capacity} ${I18N.t('persons')}</td>
+                  <td>${equip}</td>
+                  <td class="actions-cell">
+                    <button class="btn btn-sm btn-outline" onclick="ADMIN.openForm('rooms', '${r.id}')">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="ADMIN.deleteItem('rooms', '${r.id}')">🗑️</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') || `<tr><td colspan="6" class="no-data">${I18N.t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  // ── Departments ──────────────────────────────────────────────────
+  renderDepartments(panel) {
+    const search = this.searchTerms['departments'] || '';
+    let data = this._filterData(DB.getAll('departments'), ['name'], search);
+    const companies = DB.getAll('companies');
+
+    panel.innerHTML = this._toolbar('departments', I18N.t('search')) + `
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>${I18N.t('name')}</th>
+            <th>${I18N.t('company')}</th>
+            <th>${I18N.t('actions')}</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(d => {
+              const company = companies.find(c => c.id === d.companyId);
+              return `
+                <tr>
+                  <td><strong>${d.name}</strong></td>
+                  <td>${company ? company.name : d.companyId}</td>
+                  <td class="actions-cell">
+                    <button class="btn btn-sm btn-outline" onclick="ADMIN.openForm('departments', '${d.id}')">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="ADMIN.deleteItem('departments', '${d.id}')">🗑️</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') || `<tr><td colspan="3" class="no-data">${I18N.t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  // ── Employees ────────────────────────────────────────────────────
+  renderEmployees(panel) {
+    const search = this.searchTerms['employees'] || '';
+    let data = this._filterData(DB.getAll('employees'), ['name', 'email', 'phone'], search);
+    const companies = DB.getAll('companies');
+    const departments = DB.getAll('departments');
+
+    panel.innerHTML = this._toolbar('employees', I18N.t('search')) + `
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>${I18N.t('name')}</th>
+            <th>${I18N.t('email')}</th>
+            <th>${I18N.t('company')}</th>
+            <th>${I18N.t('department')}</th>
+            <th>${I18N.t('phone')}</th>
+            <th>${I18N.t('isAdmin')}</th>
+            <th>${I18N.t('actions')}</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(e => {
+              const company = companies.find(c => c.id === e.companyId);
+              const dept = departments.find(d => d.id === e.departmentId);
+              return `
+                <tr>
+                  <td><strong>${e.name}</strong></td>
+                  <td>${e.email}</td>
+                  <td>${company ? company.name : e.companyId}</td>
+                  <td>${dept ? dept.name : e.departmentId}</td>
+                  <td>${e.phone || ''}</td>
+                  <td>${e.isAdmin ? '✅' : '–'}</td>
+                  <td class="actions-cell">
+                    <button class="btn btn-sm btn-outline" onclick="ADMIN.openForm('employees', '${e.id}')">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="ADMIN.deleteItem('employees', '${e.id}')">🗑️</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') || `<tr><td colspan="7" class="no-data">${I18N.t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  // ── Equipment ────────────────────────────────────────────────────
+  renderEquipment(panel) {
+    const search = this.searchTerms['equipment'] || '';
+    let data = DB.getAll('equipment');
+    if (search) {
+      const q = search.toLowerCase();
+      data = data.filter(e =>
+        Object.values(e.name || {}).some(n => String(n).toLowerCase().includes(q))
+      );
+    }
+
+    panel.innerHTML = this._toolbar('equipment', I18N.t('search')) + `
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>${I18N.t('icon')}</th>
+            <th>English</th>
+            <th>繁體中文</th>
+            <th>简体中文</th>
+            <th>${I18N.t('actions')}</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(e => `
+              <tr>
+                <td style="font-size:1.5rem">${e.icon}</td>
+                <td>${e.name?.en || ''}</td>
+                <td>${e.name?.['zh-TW'] || ''}</td>
+                <td>${e.name?.['zh-CN'] || ''}</td>
+                <td class="actions-cell">
+                  <button class="btn btn-sm btn-outline" onclick="ADMIN.openForm('equipment', '${e.id}')">✏️</button>
+                  <button class="btn btn-sm btn-danger" onclick="ADMIN.deleteItem('equipment', '${e.id}')">🗑️</button>
+                </td>
+              </tr>
+            `).join('') || `<tr><td colspan="5" class="no-data">${I18N.t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  // ── Bookings ─────────────────────────────────────────────────────
+  renderBookings(panel) {
+    const search = this.searchTerms['bookings'] || '';
+    let data = DB.getAll('bookings');
+    if (search) {
+      const q = search.toLowerCase();
+      data = data.filter(b =>
+        b.purpose.toLowerCase().includes(q) || b.date.includes(q)
+      );
+    }
+    data.sort((a, b) => b.date.localeCompare(a.date));
+
+    const rooms = DB.getAll('rooms');
+    const employees = DB.getAll('employees');
+
+    panel.innerHTML = this._toolbar('bookings', I18N.t('search')) + `
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>${I18N.t('date')}</th>
+            <th>${I18N.t('roomInfo')}</th>
+            <th>${I18N.t('bookingTime')}</th>
+            <th>${I18N.t('bookedBy')}</th>
+            <th>${I18N.t('purposeLabel')}</th>
+            <th>${I18N.t('status')}</th>
+            <th>${I18N.t('actions')}</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(b => {
+              const room = rooms.find(r => r.id === b.roomId);
+              const emp = employees.find(e => e.id === b.employeeId);
+              return `
+                <tr>
+                  <td>${b.date}</td>
+                  <td>${room ? room.name : b.roomId}</td>
+                  <td>${b.startTime}–${b.endTime}</td>
+                  <td>${emp ? emp.name : b.employeeId}</td>
+                  <td>${b.purpose}</td>
+                  <td><span class="status-badge status-${b.status}">${I18N.t(b.status)}</span></td>
+                  <td class="actions-cell">
+                    ${b.status !== 'cancelled' ? `
+                      <button class="btn btn-sm btn-danger" onclick="ADMIN.cancelBooking('${b.id}')">Cancel</button>
+                    ` : '–'}
+                  </td>
+                </tr>
+              `;
+            }).join('') || `<tr><td colspan="7" class="no-data">${I18N.t('noData')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  cancelBooking(id) {
+    if (APP.confirm(I18N.t('confirmDelete'))) {
+      DB.cancelBooking(id);
+      this.renderTab('bookings');
+      APP.showToast(I18N.t('bookingCancelled'), 'info');
+    }
+  },
+
+  // ── Delete ───────────────────────────────────────────────────────
+  deleteItem(entity, id) {
+    if (APP.confirm(I18N.t('confirmDelete'))) {
+      DB.remove(entity, id);
+      this.renderTab(entity);
+      APP.showToast(I18N.t('successDelete'), 'success');
+    }
+  },
+
+  // ── Forms ─────────────────────────────────────────────────────────
+  openForm(entity, id) {
+    this.editingId = id;
+    this.editingEntity = entity;
+    const item = id ? DB.getById(entity, id) : null;
+
+    let formHtml = '';
+    let title = id ? I18N.t('edit') : I18N.t('addNew');
+
+    switch(entity) {
+      case 'companies': formHtml = this._companyForm(item); break;
+      case 'rooms': formHtml = this._roomForm(item); break;
+      case 'departments': formHtml = this._departmentForm(item); break;
+      case 'employees': formHtml = this._employeeForm(item); break;
+      case 'equipment': formHtml = this._equipmentForm(item); break;
+      case 'bookings': return; // Bookings not editable in admin (use booking.html)
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'admin-modal-overlay';
+    modal.id = 'admin-modal';
+    modal.innerHTML = `
+      <div class="admin-modal">
+        <div class="modal-header">
+          <h3>${title} — ${I18N.t(entity === 'equipment' ? 'equipmentTab' : entity) || entity}</h3>
+          <button class="modal-close" onclick="ADMIN.closeForm()">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="admin-entity-form" onsubmit="ADMIN.saveForm(event)">
+            <div class="admin-form">${formHtml}</div>
+            <div class="modal-footer" style="padding:1rem 0 0">
+              <button type="submit" class="btn btn-primary">${I18N.t('save')}</button>
+              <button type="button" class="btn btn-secondary" onclick="ADMIN.closeForm()">${I18N.t('cancel')}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) this.closeForm(); });
+  },
+
+  closeForm() {
+    const modal = document.getElementById('admin-modal');
+    if (modal) modal.remove();
+    this.editingId = null;
+    this.editingEntity = null;
+  },
+
+  saveForm(event) {
+    event.preventDefault();
+    const entity = this.editingEntity;
+    const id = this.editingId;
+    let data = {};
+
+    switch(entity) {
+      case 'companies':
+        data = {
+          name: document.getElementById('af-name').value.trim(),
+          country: document.getElementById('af-country').value,
+          address: document.getElementById('af-address').value.trim(),
+          adminEmail: document.getElementById('af-adminEmail').value.trim(),
+        };
+        break;
+      case 'rooms':
+        const equipChecks = document.querySelectorAll('.equip-check:checked');
+        data = {
+          name: document.getElementById('af-name').value.trim(),
+          companyId: document.getElementById('af-companyId').value,
+          location: document.getElementById('af-location').value.trim(),
+          capacity: parseInt(document.getElementById('af-capacity').value) || 0,
+          description: document.getElementById('af-description').value.trim(),
+          equipment: [...equipChecks].map(c => c.value),
+          country: document.getElementById('af-companyId') ?
+            (DB.getById('companies', document.getElementById('af-companyId').value)?.country || '') : '',
+        };
+        break;
+      case 'departments':
+        data = {
+          name: document.getElementById('af-name').value.trim(),
+          companyId: document.getElementById('af-companyId').value,
+        };
+        break;
+      case 'employees':
+        data = {
+          name: document.getElementById('af-name').value.trim(),
+          email: document.getElementById('af-email').value.trim(),
+          phone: document.getElementById('af-phone').value.trim(),
+          companyId: document.getElementById('af-companyId').value,
+          departmentId: document.getElementById('af-departmentId').value,
+          isAdmin: document.getElementById('af-isAdmin').checked,
+          defaultRoomId: document.getElementById('af-defaultRoomId').value,
+          microsoft365Account: document.getElementById('af-m365').value.trim(),
+        };
+        break;
+      case 'equipment':
+        data = {
+          icon: document.getElementById('af-icon').value.trim(),
+          name: {
+            en: document.getElementById('af-name-en').value.trim(),
+            'zh-TW': document.getElementById('af-name-tw').value.trim(),
+            'zh-CN': document.getElementById('af-name-cn').value.trim(),
+            th: document.getElementById('af-name-th').value.trim(),
+            km: document.getElementById('af-name-km').value.trim(),
+            fr: document.getElementById('af-name-fr').value.trim(),
+            es: document.getElementById('af-name-es').value.trim(),
+          }
+        };
+        break;
+    }
+
+    if (id) {
+      DB.update(entity, id, data);
+      APP.showToast(I18N.t('successSave'), 'success');
+    } else {
+      DB.add(entity, data);
+      APP.showToast(I18N.t('successSave'), 'success');
+    }
+
+    this.closeForm();
+    this.renderTab(entity);
+  },
+
+  _val(item, key, def = '') {
+    return item ? (item[key] !== undefined ? item[key] : def) : def;
+  },
+
+  _companyForm(item) {
+    const countries = [
+      { code: 'HK', name: '🇭🇰 Hong Kong' },
+      { code: 'TH', name: '🇹🇭 Thailand' },
+      { code: 'KH', name: '🇰🇭 Cambodia' },
+      { code: 'FR', name: '🇫🇷 France' },
+      { code: 'ES', name: '🇪🇸 Spain' },
+    ];
+    return `
+      <div class="form-group form-group-full">
+        <label>${I18N.t('name')}</label>
+        <input type="text" id="af-name" class="form-control" required value="${this._val(item,'name')}">
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('country')}</label>
+        <select id="af-country" class="form-control" required>
+          ${countries.map(c => `<option value="${c.code}"${this._val(item,'country') === c.code ? ' selected' : ''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('adminEmail')}</label>
+        <input type="email" id="af-adminEmail" class="form-control" required value="${this._val(item,'adminEmail')}">
+      </div>
+      <div class="form-group form-group-full">
+        <label>${I18N.t('address')}</label>
+        <input type="text" id="af-address" class="form-control" value="${this._val(item,'address')}">
+      </div>
+    `;
+  },
+
+  _roomForm(item) {
+    const companies = DB.getAll('companies');
+    const allEquip = DB.getAll('equipment');
+    const selectedEquip = item ? (item.equipment || []) : [];
+    const equipHtml = allEquip.map(e => `
+      <label class="multi-select-item">
+        <input type="checkbox" class="equip-check" value="${e.id}"
+               ${selectedEquip.includes(e.id) ? 'checked' : ''}>
+        <span>${e.icon} ${e.name?.en || e.id}</span>
+      </label>
+    `).join('');
+
+    return `
+      <div class="form-group form-group-full">
+        <label>${I18N.t('name')}</label>
+        <input type="text" id="af-name" class="form-control" required value="${this._val(item,'name')}">
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('company')}</label>
+        <select id="af-companyId" class="form-control" required>
+          <option value="">--</option>
+          ${companies.map(c => `<option value="${c.id}"${this._val(item,'companyId') === c.id ? ' selected' : ''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('location')}</label>
+        <input type="text" id="af-location" class="form-control" value="${this._val(item,'location')}">
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('capacity')}</label>
+        <input type="number" id="af-capacity" class="form-control" min="1" required value="${this._val(item,'capacity',10)}">
+      </div>
+      <div class="form-group form-group-full">
+        <label>${I18N.t('description')}</label>
+        <input type="text" id="af-description" class="form-control" value="${this._val(item,'description')}">
+      </div>
+      <div class="form-group form-group-full">
+        <label>${I18N.t('equipment')}</label>
+        <div class="multi-select-list">${equipHtml}</div>
+      </div>
+    `;
+  },
+
+  _departmentForm(item) {
+    const companies = DB.getAll('companies');
+    return `
+      <div class="form-group form-group-full">
+        <label>${I18N.t('name')}</label>
+        <input type="text" id="af-name" class="form-control" required value="${this._val(item,'name')}">
+      </div>
+      <div class="form-group form-group-full">
+        <label>${I18N.t('company')}</label>
+        <select id="af-companyId" class="form-control" required>
+          <option value="">--</option>
+          ${companies.map(c => `<option value="${c.id}"${this._val(item,'companyId') === c.id ? ' selected' : ''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  },
+
+  _employeeForm(item) {
+    const companies = DB.getAll('companies');
+    const departments = DB.getAll('departments');
+    const rooms = DB.getAll('rooms');
+    const companyId = this._val(item, 'companyId');
+    const filteredDepts = companyId ? departments.filter(d => d.companyId === companyId) : departments;
+    const filteredRooms = companyId ? rooms.filter(r => r.companyId === companyId) : rooms;
+
+    return `
+      <div class="form-group form-group-full">
+        <label>${I18N.t('name')}</label>
+        <input type="text" id="af-name" class="form-control" required value="${this._val(item,'name')}">
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('email')}</label>
+        <input type="email" id="af-email" class="form-control" required value="${this._val(item,'email')}">
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('phone')}</label>
+        <input type="text" id="af-phone" class="form-control" value="${this._val(item,'phone')}">
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('company')}</label>
+        <select id="af-companyId" class="form-control" required
+                onchange="ADMIN._reloadDeptRoom()">
+          <option value="">--</option>
+          ${companies.map(c => `<option value="${c.id}"${companyId === c.id ? ' selected' : ''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('department')}</label>
+        <select id="af-departmentId" class="form-control">
+          <option value="">--</option>
+          ${filteredDepts.map(d => `<option value="${d.id}"${this._val(item,'departmentId') === d.id ? ' selected' : ''}>${d.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>${I18N.t('defaultRoom')}</label>
+        <select id="af-defaultRoomId" class="form-control">
+          <option value="">--</option>
+          ${filteredRooms.map(r => `<option value="${r.id}"${this._val(item,'defaultRoomId') === r.id ? ' selected' : ''}>${r.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group form-group-full">
+        <label>${I18N.t('microsoft365Account')}</label>
+        <input type="email" id="af-m365" class="form-control" value="${this._val(item,'microsoft365Account')}">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+          <input type="checkbox" id="af-isAdmin" ${item && item.isAdmin ? 'checked' : ''}>
+          ${I18N.t('isAdmin')}
+        </label>
+      </div>
+    `;
+  },
+
+  _reloadDeptRoom() {
+    const companyId = document.getElementById('af-companyId')?.value;
+    const deptSel = document.getElementById('af-departmentId');
+    const roomSel = document.getElementById('af-defaultRoomId');
+    if (deptSel) {
+      const depts = companyId ? DB.getDepartmentsByCompany(companyId) : DB.getAll('departments');
+      deptSel.innerHTML = `<option value="">--</option>` +
+        depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    }
+    if (roomSel) {
+      const rooms = companyId ? DB.getRoomsByCompany(companyId) : DB.getAll('rooms');
+      roomSel.innerHTML = `<option value="">--</option>` +
+        rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    }
+  },
+
+  _equipmentForm(item) {
+    return `
+      <div class="form-group">
+        <label>${I18N.t('icon')} (emoji)</label>
+        <input type="text" id="af-icon" class="form-control" required value="${this._val(item,'icon')}">
+      </div>
+      <div class="form-group">
+        <label>English</label>
+        <input type="text" id="af-name-en" class="form-control" required value="${item?.name?.en || ''}">
+      </div>
+      <div class="form-group">
+        <label>繁體中文</label>
+        <input type="text" id="af-name-tw" class="form-control" value="${item?.name?.['zh-TW'] || ''}">
+      </div>
+      <div class="form-group">
+        <label>简体中文</label>
+        <input type="text" id="af-name-cn" class="form-control" value="${item?.name?.['zh-CN'] || ''}">
+      </div>
+      <div class="form-group">
+        <label>Thai</label>
+        <input type="text" id="af-name-th" class="form-control" value="${item?.name?.th || ''}">
+      </div>
+      <div class="form-group">
+        <label>Khmer</label>
+        <input type="text" id="af-name-km" class="form-control" value="${item?.name?.km || ''}">
+      </div>
+      <div class="form-group">
+        <label>Français</label>
+        <input type="text" id="af-name-fr" class="form-control" value="${item?.name?.fr || ''}">
+      </div>
+      <div class="form-group">
+        <label>Español</label>
+        <input type="text" id="af-name-es" class="form-control" value="${item?.name?.es || ''}">
+      </div>
+    `;
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  ADMIN.init();
+});
+</script>
+</body>
+</html>
