@@ -615,19 +615,19 @@ const ADMIN = {
         <p class="settings-help-text" data-i18n="demoModeHelp">${I18N.t('demoModeHelp')}</p>
         <div class="form-grid">
           <div class="form-group">
-            <label data-i18n="tenantId">${I18N.t('tenantId')}</label>
+            <label for="entra-tenantId" data-i18n="tenantId">${I18N.t('tenantId')}</label>
             <input type="text" id="entra-tenantId" class="form-control" value="${this._esc(entra.tenantId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
           </div>
           <div class="form-group">
-            <label data-i18n="clientId">${I18N.t('clientId')}</label>
+            <label for="entra-clientId" data-i18n="clientId">${I18N.t('clientId')}</label>
             <input type="text" id="entra-clientId" class="form-control" value="${this._esc(entra.clientId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
           </div>
           <div class="form-group form-group-full">
-            <label data-i18n="redirectUri">${I18N.t('redirectUri')}</label>
+            <label for="entra-redirectUri" data-i18n="redirectUri">${I18N.t('redirectUri')}</label>
             <input type="text" id="entra-redirectUri" class="form-control" value="${this._esc(entra.redirectUri)}">
           </div>
           <div class="form-group form-group-full">
-            <label data-i18n="scopes">${I18N.t('scopes')}</label>
+            <label for="entra-scopes" data-i18n="scopes">${I18N.t('scopes')}</label>
             <input type="text" id="entra-scopes" class="form-control" value="${this._esc(entra.scopes)}">
           </div>
           <div class="form-group form-group-full">
@@ -652,15 +652,15 @@ const ADMIN = {
         <div class="settings-warning" data-i18n="smtpSecurityWarning">${I18N.t('smtpSecurityWarning')}</div>
         <div class="form-grid">
           <div class="form-group">
-            <label data-i18n="smtpHost">${I18N.t('smtpHost')}</label>
+            <label for="smtp-host" data-i18n="smtpHost">${I18N.t('smtpHost')}</label>
             <input type="text" id="smtp-host" class="form-control" value="${this._esc(smtp.host)}" placeholder="smtp.example.com">
           </div>
           <div class="form-group">
-            <label data-i18n="smtpPort">${I18N.t('smtpPort')}</label>
+            <label for="smtp-port" data-i18n="smtpPort">${I18N.t('smtpPort')}</label>
             <input type="number" id="smtp-port" class="form-control" value="${this._esc(smtp.port)}" placeholder="587">
           </div>
           <div class="form-group">
-            <label data-i18n="smtpEncryption">${I18N.t('smtpEncryption')}</label>
+            <label for="smtp-encryption" data-i18n="smtpEncryption">${I18N.t('smtpEncryption')}</label>
             <select id="smtp-encryption" class="form-control">
               <option value="None" ${smtp.encryption === 'None' ? 'selected' : ''} data-i18n="encryptionNone">${I18N.t('encryptionNone')}</option>
               <option value="SSL" ${smtp.encryption === 'SSL' ? 'selected' : ''}>SSL</option>
@@ -669,19 +669,19 @@ const ADMIN = {
             </select>
           </div>
           <div class="form-group">
-            <label data-i18n="smtpUsername">${I18N.t('smtpUsername')}</label>
+            <label for="smtp-username" data-i18n="smtpUsername">${I18N.t('smtpUsername')}</label>
             <input type="text" id="smtp-username" class="form-control" autocomplete="off" value="${this._esc(smtp.username)}">
           </div>
           <div class="form-group">
-            <label data-i18n="smtpPassword">${I18N.t('smtpPassword')}</label>
+            <label for="smtp-password" data-i18n="smtpPassword">${I18N.t('smtpPassword')}</label>
             <input type="password" id="smtp-password" class="form-control" autocomplete="off" value="${this._esc(smtp.password)}">
           </div>
           <div class="form-group">
-            <label data-i18n="smtpFromName">${I18N.t('smtpFromName')}</label>
+            <label for="smtp-fromName" data-i18n="smtpFromName">${I18N.t('smtpFromName')}</label>
             <input type="text" id="smtp-fromName" class="form-control" value="${this._esc(smtp.fromName)}">
           </div>
           <div class="form-group">
-            <label data-i18n="smtpFromEmail">${I18N.t('smtpFromEmail')}</label>
+            <label for="smtp-fromEmail" data-i18n="smtpFromEmail">${I18N.t('smtpFromEmail')}</label>
             <input type="email" id="smtp-fromEmail" class="form-control" value="${this._esc(smtp.fromEmail)}">
           </div>
         </div>
@@ -765,7 +765,7 @@ const ADMIN = {
     const smtp = JSON.parse(localStorage.getItem('rbs_smtp_config') || '{}');
     const fromName = smtp.fromName || I18N.t('appName');
     const fromEmail = smtp.fromEmail || 'noreply@example.com';
-    const subject = `[${I18N.t('appName')}] Test Email ${I18N.t('smtpSimulated')}`;
+    const subject = `[${I18N.t('appName')}] ${I18N.t('testEmailSubject')}`;
     const body = `${I18N.t('appName')}\n${'='.repeat(50)}\n\nThis is a test email sent from the admin panel.\n\nSMTP Configuration (Simulated):\n  Host: ${smtp.host || 'N/A'}\n  Port: ${smtp.port || 'N/A'}\n  Encryption: ${smtp.encryption || 'N/A'}\n  From: ${fromName} <${fromEmail}>\n\n${I18N.t('smtpSimulated')}\n\n---\n${I18N.t('appName')}`;
     EMAIL._send([recipient], subject, body);
     APP.showToast(I18N.t('testEmail') + ' → ' + recipient, 'success');

@@ -6,6 +6,7 @@
 
 const I18N = {
   currentLang: 'en',
+  _warnedKeys: new Set(),
 
   translations: {
     en: {
@@ -205,6 +206,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: 'Open in Email Client',
       smtpSimulated: '(Simulated via SMTP settings)',
+      testEmailSubject: 'Test Email (Simulated via SMTP Settings)',
       integrationsTab: 'Integrations',
     },
 
@@ -391,6 +393,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: '在郵件客戶端中開啟',
       smtpSimulated: '（透過 SMTP 設定模擬）',
+      testEmailSubject: '測試郵件（透過 SMTP 設定模擬）',
       integrationsTab: '整合',
     },
 
@@ -577,6 +580,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: '在邮件客户端中打开',
       smtpSimulated: '（通过 SMTP 设置模拟）',
+      testEmailSubject: '测试邮件（通过 SMTP 设置模拟）',
       integrationsTab: '集成',
     },
 
@@ -763,6 +767,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: 'เปิดในโปรแกรมอีเมล',
       smtpSimulated: '(จำลองผ่านการตั้งค่า SMTP)',
+      testEmailSubject: 'อีเมลทดสอบ (จำลองผ่านการตั้งค่า SMTP)',
       integrationsTab: 'การเชื่อมต่อ',
     },
 
@@ -949,6 +954,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: 'បើកក្នុងកម្មវិធីអ៊ីមែល',
       smtpSimulated: '(ក្លែងក្លាយតាមការកំណត់ SMTP)',
+      testEmailSubject: 'អ៊ីមែលសាកល្បង (ក្លែងក្លាយតាមការកំណត់ SMTP)',
       integrationsTab: 'ការរួមបញ្ចូល',
     },
 
@@ -1135,6 +1141,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: 'Ouvrir dans le client email',
       smtpSimulated: '(Simulé via les paramètres SMTP)',
+      testEmailSubject: 'Email de test (Simulé via les paramètres SMTP)',
       integrationsTab: 'Intégrations',
     },
 
@@ -1321,6 +1328,7 @@ const I18N = {
       encryptionSTARTTLS: 'STARTTLS',
       openEmailClient: 'Abrir en cliente de email',
       smtpSimulated: '(Simulado a través de la configuración SMTP)',
+      testEmailSubject: 'Email de prueba (Simulado a través de la configuración SMTP)',
       integrationsTab: 'Integraciones',
     }
   },
@@ -1361,10 +1369,18 @@ const I18N = {
     if (lang && lang[key] !== undefined) return lang[key];
     const en = this.translations['en'];
     if (en && en[key] !== undefined) {
-      if (this.currentLang !== 'en') console.warn(`[i18n] Missing key "${key}" for lang "${this.currentLang}", falling back to EN`);
+      const warnKey = `${this.currentLang}:${key}`;
+      if (this.currentLang !== 'en' && !this._warnedKeys.has(warnKey)) {
+        console.warn(`[i18n] Missing key "${key}" for lang "${this.currentLang}", falling back to EN`);
+        this._warnedKeys.add(warnKey);
+      }
       return en[key];
     }
-    console.warn(`[i18n] Missing key "${key}" in all languages`);
+    const allKey = `all:${key}`;
+    if (!this._warnedKeys.has(allKey)) {
+      console.warn(`[i18n] Missing key "${key}" in all languages`);
+      this._warnedKeys.add(allKey);
+    }
     return key;
   },
 

@@ -109,8 +109,7 @@ const APP = {
   switchLanguage(lang) {
     I18N.setLanguage(lang);
     this.renderLangSwitcher();
-    // Fire languagechange event
-    document.dispatchEvent(new CustomEvent('languagechange', { detail: { lang } }));
+    // (languagechange event already fired by I18N.setLanguage)
     // Re-render dynamic content if needed
     if (window.CALENDAR && typeof CALENDAR.render === 'function') CALENDAR.render();
     if (window.BOOKING && typeof BOOKING.onLangChange === 'function') BOOKING.onLangChange();
