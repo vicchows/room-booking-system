@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room Booking System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- MSAL.js for Microsoft 365 Auth (optional - only needed with real Azure AD) -->
+  <!-- <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script> -->
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a class="navbar-brand" href="index.html">🏢 <span data-i18n="appName">Room Booking System</span></a>
+    <div class="navbar-nav">
+      <a class="nav-link active" href="index.html" data-i18n="home">Home</a>
+      <a class="nav-link" href="reports.html" data-i18n="reports">Reports</a>
+      <a class="nav-link" href="admin.html" data-i18n="admin">Admin</a>
+    </div>
+    <div class="navbar-actions">
+      <div id="lang-switcher"></div>
+      <div id="nav-user-info" class="nav-user-info" style="display:none"></div>
+      <button id="btn-login-m365" class="btn btn-primary btn-sm" onclick="MSALAuth.login()">
+        🔐 <span data-i18n="loginM365">Login with Microsoft 365</span>
+      </button>
+      <button id="btn-logout" class="btn btn-secondary btn-sm" onclick="MSALAuth.logout()" style="display:none">
+        <span data-i18n="logout">Logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Hero Banner -->
+  <div class="hero">
+    <h1 data-i18n="appName">Room Booking System</h1>
+    <p data-i18n="selectCountry">Select a Country to get started</p>
+  </div>
+
+  <!-- Countries Section -->
+  <div class="section">
+    <h2 class="section-title" data-i18n="selectCountry">Select a Country</h2>
+    <div id="countries-grid" class="countries-grid">
+      <!-- Rendered by HOME.renderCountries() -->
+    </div>
+  </div>
+
+  <!-- Companies Section -->
+  <div class="section" id="companies-section" style="display:none">
+    <h2 class="section-title" data-i18n="selectCompany">Select a Company</h2>
+    <div id="companies-grid" class="companies-grid">
+      <!-- Rendered by HOME.renderCompanies() -->
+    </div>
+  </div>
+
+  <!-- Rooms Section -->
+  <div class="section" id="rooms-section" style="display:none">
+    <h2 class="section-title" data-i18n="availableRooms">Available Rooms</h2>
+    <div id="rooms-grid" class="rooms-grid">
+      <!-- Rendered by HOME.renderRooms() -->
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="data/sample-data.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/email.js"></script>
+<script src="js/msal-auth.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    HOME.init();
+  });
+</script>
+</body>
+</html>

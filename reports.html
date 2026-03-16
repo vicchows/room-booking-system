@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Room Booking System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a class="navbar-brand" href="index.html">🏢 <span data-i18n="appName">Room Booking System</span></a>
+    <div class="navbar-nav">
+      <a class="nav-link" href="index.html" data-i18n="home">Home</a>
+      <a class="nav-link active" href="reports.html" data-i18n="reports">Reports</a>
+      <a class="nav-link" href="admin.html" data-i18n="admin">Admin</a>
+    </div>
+    <div class="navbar-actions">
+      <div id="lang-switcher"></div>
+      <div id="nav-user-info" class="nav-user-info" style="display:none"></div>
+      <button id="btn-login-m365" class="btn btn-primary btn-sm" onclick="MSALAuth.login()">
+        🔐 <span data-i18n="loginM365">Login with Microsoft 365</span>
+      </button>
+      <button id="btn-logout" class="btn btn-secondary btn-sm" onclick="MSALAuth.logout()" style="display:none">
+        <span data-i18n="logout">Logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+  <div class="page-header">
+    <h1 class="page-title" data-i18n="reportsPage">Reports</h1>
+  </div>
+
+  <!-- Report Tabs -->
+  <div class="report-tabs">
+    <button class="report-tab active" data-tab="my-bookings" onclick="REPORTS.showTab('my-bookings')">
+      📋 <span data-i18n="myBookings">My Bookings</span>
+    </button>
+    <button class="report-tab" data-tab="room-history" onclick="REPORTS.showTab('room-history')">
+      🏢 <span data-i18n="roomHistory">Room History</span>
+    </button>
+    <button class="report-tab" data-tab="utilization" onclick="REPORTS.showTab('utilization')">
+      📊 <span data-i18n="utilization">Utilization</span>
+    </button>
+  </div>
+
+  <!-- Panel: My Bookings -->
+  <div class="report-panel" id="panel-my-bookings" style="display:block">
+    <div class="report-filters">
+      <div class="filter-group">
+        <label data-i18n="from">From</label>
+        <input type="date" id="my-from" class="form-control" oninput="REPORTS.renderMyBookings()">
+      </div>
+      <div class="filter-group">
+        <label data-i18n="to">To</label>
+        <input type="date" id="my-to" class="form-control" oninput="REPORTS.renderMyBookings()">
+      </div>
+      <div class="filter-group">
+        <label data-i18n="filterStatus">Status</label>
+        <select id="my-status" class="form-control" onchange="REPORTS.renderMyBookings()">
+          <option value="" data-i18n="all">All</option>
+          <option value="confirmed" data-i18n="confirmed">Confirmed</option>
+          <option value="pending" data-i18n="pending">Pending</option>
+          <option value="cancelled" data-i18n="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="filter-group" style="justify-content:flex-end;margin-left:auto">
+        <button class="btn btn-secondary" onclick="REPORTS.printReport()">🖨️ <span data-i18n="printReport">Print</span></button>
+        <button class="btn btn-secondary" onclick="REPORTS.exportCSV('my-bookings-tbl')">📄 <span data-i18n="exportCSV">Export CSV</span></button>
+      </div>
+    </div>
+    <div class="table-container">
+      <div id="my-bookings-table"></div>
+    </div>
+  </div>
+
+  <!-- Panel: Room History -->
+  <div class="report-panel" id="panel-room-history">
+    <div class="report-filters">
+      <div class="filter-group">
+        <label data-i18n="from">From</label>
+        <input type="date" id="hist-from" class="form-control" oninput="REPORTS.renderRoomHistory()">
+      </div>
+      <div class="filter-group">
+        <label data-i18n="to">To</label>
+        <input type="date" id="hist-to" class="form-control" oninput="REPORTS.renderRoomHistory()">
+      </div>
+      <div class="filter-group">
+        <label data-i18n="filterRoom">Room</label>
+        <select id="hist-room" class="form-control" onchange="REPORTS.renderRoomHistory()">
+          <option value="" data-i18n="all">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label data-i18n="filterDept">Department</label>
+        <select id="hist-dept" class="form-control" onchange="REPORTS.renderRoomHistory()">
+          <option value="" data-i18n="all">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label data-i18n="filterStatus">Status</label>
+        <select id="hist-status" class="form-control" onchange="REPORTS.renderRoomHistory()">
+          <option value="" data-i18n="all">All</option>
+          <option value="confirmed" data-i18n="confirmed">Confirmed</option>
+          <option value="pending" data-i18n="pending">Pending</option>
+          <option value="cancelled" data-i18n="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="filter-group" style="justify-content:flex-end;margin-left:auto">
+        <button class="btn btn-secondary" onclick="REPORTS.printReport()">🖨️ <span data-i18n="printReport">Print</span></button>
+        <button class="btn btn-secondary" onclick="REPORTS.exportCSV('hist-tbl')">📄 <span data-i18n="exportCSV">Export CSV</span></button>
+      </div>
+    </div>
+    <!-- Stats -->
+    <div class="stat-cards" id="hist-stats"></div>
+    <div class="table-container">
+      <div id="room-history-table"></div>
+    </div>
+  </div>
+
+  <!-- Panel: Utilization -->
+  <div class="report-panel" id="panel-utilization">
+    <div class="report-actions">
+      <button class="btn btn-secondary" onclick="REPORTS.printReport()">🖨️ <span data-i18n="printReport">Print</span></button>
+    </div>
+    <div id="utilization-chart-area">
+      <p class="text-center text-muted">Loading chart...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="data/sample-data.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/email.js"></script>
+<script src="js/msal-auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/reports.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    REPORTS.init();
+  });
+</script>
+</body>
+</html>
