@@ -1320,3 +1320,226 @@ textarea.form-control { resize: vertical; }
   padding: 0;
 }
 .back-link:hover { color: var(--primary); }
+
+/* ─── Dark Mode ─────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: #1e3a5f;
+  --secondary: #94a3b8;
+  --success: #22c55e;
+  --success-light: #14532d;
+  --warning: #f59e0b;
+  --warning-light: #451a03;
+  --danger: #ef4444;
+  --danger-light: #450a0a;
+  --info: #06b6d4;
+  --info-light: #0c4a6e;
+
+  --white: #1e293b;
+  --gray-50: #0f172a;
+  --gray-100: #1e293b;
+  --gray-200: #334155;
+  --gray-300: #475569;
+  --gray-400: #64748b;
+  --gray-500: #94a3b8;
+  --gray-600: #cbd5e1;
+  --gray-700: #e2e8f0;
+  --gray-800: #f1f5f9;
+  --gray-900: #f8fafc;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.5), 0 10px 10px rgba(0,0,0,0.3);
+}
+
+/* Calendar cell colors in dark mode */
+[data-theme="dark"] .calendar-day.available { background: #0f2d1f; border-color: #166534; }
+[data-theme="dark"] .calendar-day.available:hover { background: #166534; }
+[data-theme="dark"] .calendar-day.partial { background: #2d1b00; border-color: #92400e; }
+[data-theme="dark"] .calendar-day.partial:hover { background: #78350f; }
+[data-theme="dark"] .calendar-day.full { background: #2d0a0a; border-color: #991b1b; }
+[data-theme="dark"] .calendar-day.full:hover { background: #7f1d1d; }
+[data-theme="dark"] .calendar-day.today { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.4); }
+[data-theme="dark"] .calendar-day.selected { background: #1e3a5f; border-color: #3b82f6; }
+
+/* Status dots in dark mode - adjust for readability */
+[data-theme="dark"] .status-dot-available { background: #22c55e; }
+[data-theme="dark"] .status-dot-partial { background: #f59e0b; }
+[data-theme="dark"] .status-dot-full { background: #ef4444; }
+[data-theme="dark"] .status-dot-none { background: #475569; }
+
+/* Badge & status in dark mode */
+[data-theme="dark"] .status-confirmed { background: #14532d; color: #4ade80; }
+[data-theme="dark"] .status-pending { background: #451a03; color: #fbbf24; }
+[data-theme="dark"] .status-cancelled { background: #450a0a; color: #f87171; }
+
+/* Navbar in dark mode */
+[data-theme="dark"] .navbar { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .navbar-brand, [data-theme="dark"] .nav-link { color: #e2e8f0; }
+[data-theme="dark"] .nav-link:hover, [data-theme="dark"] .nav-link.active { color: #3b82f6; }
+
+/* Equipment badge in dark mode */
+[data-theme="dark"] .equipment-badge { background: #334155; color: #e2e8f0; border-color: #475569; }
+
+/* Theme toggle button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  background: var(--white);
+  color: var(--gray-700);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.theme-toggle:hover { background: var(--gray-100); border-color: var(--gray-400); }
+[data-theme="dark"] .theme-toggle { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-700); }
+
+/* Theme dropdown */
+.theme-dropdown { position: relative; }
+.theme-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  min-width: 150px;
+  overflow: hidden;
+}
+.theme-dropdown:hover .theme-menu,
+.theme-dropdown:focus-within .theme-menu { display: block; }
+.theme-option {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer; border: none;
+  background: none; width: 100%;
+  font-size: var(--font-size-sm); color: var(--gray-700);
+  text-align: left;
+  transition: var(--transition);
+}
+.theme-option:hover { background: var(--gray-100); }
+.theme-option.active { color: var(--primary); font-weight: 600; background: var(--primary-light); }
+[data-theme="dark"] .theme-menu { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .theme-option { color: #e2e8f0; }
+[data-theme="dark"] .theme-option:hover { background: #334155; }
+
+/* Input / form controls in dark mode */
+[data-theme="dark"] .form-control {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+[data-theme="dark"] .form-control:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+[data-theme="dark"] .form-control option { background: #1e293b; }
+
+/* Card / room-card / company-card in dark mode */
+[data-theme="dark"] .room-card,
+[data-theme="dark"] .company-card,
+[data-theme="dark"] .country-card,
+[data-theme="dark"] .booking-item,
+[data-theme="dark"] .day-panel,
+[data-theme="dark"] .calendar-wrapper,
+[data-theme="dark"] .confirmation-card,
+[data-theme="dark"] .room-info-card { background: #1e293b; border-color: #334155; }
+
+[data-theme="dark"] .country-card:hover,
+[data-theme="dark"] .company-card:hover { background: #334155; }
+[data-theme="dark"] .country-card.active,
+[data-theme="dark"] .company-card.active { background: #1e3a5f; border-color: #3b82f6; }
+
+/* Table in dark mode */
+[data-theme="dark"] .data-table thead th { background: #334155; color: #e2e8f0; border-color: #475569; }
+[data-theme="dark"] .data-table tbody tr:hover { background: #334155; }
+[data-theme="dark"] .data-table tbody td { border-color: #334155; color: #e2e8f0; }
+[data-theme="dark"] .data-table tbody tr:nth-child(even) { background: rgba(51,65,85,0.4); }
+
+/* Tabs in dark mode */
+[data-theme="dark"] .tabs, [data-theme="dark"] .report-tabs { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .tab-btn, [data-theme="dark"] .report-tab { color: #94a3b8; }
+[data-theme="dark"] .tab-btn:hover, [data-theme="dark"] .report-tab:hover { background: #334155; color: #e2e8f0; }
+[data-theme="dark"] .tab-btn.active, [data-theme="dark"] .report-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; background: transparent; }
+
+/* Modal in dark mode */
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .admin-modal { background: #1e293b; color: #e2e8f0; }
+[data-theme="dark"] .modal-header, [data-theme="dark"] .modal-footer { border-color: #334155; }
+[data-theme="dark"] .modal-close { color: #64748b; }
+[data-theme="dark"] .modal-close:hover { color: #e2e8f0; }
+[data-theme="dark"] .email-body { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+
+/* Day panel in dark mode */
+[data-theme="dark"] .day-panel-header { border-color: #334155; }
+[data-theme="dark"] .booking-item { border-color: #334155; }
+
+/* Toast in dark mode */
+[data-theme="dark"] .toast { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+
+/* Report stats in dark mode */
+[data-theme="dark"] .stat-card { background: #1e293b; border-color: #334155; }
+
+/* Search input in dark mode */
+[data-theme="dark"] .search-box { background: #334155; border-color: #475569; color: #f1f5f9; }
+
+/* Lang dropdown in dark */
+[data-theme="dark"] .lang-menu { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .lang-option { color: #e2e8f0; }
+[data-theme="dark"] .lang-option:hover { background: #334155; }
+[data-theme="dark"] .lang-toggle { color: #e2e8f0; }
+
+/* Multi-select in dark */
+[data-theme="dark"] .multi-select-list { border-color: #475569; background: #0f172a; }
+[data-theme="dark"] .multi-select-item:hover { background: #334155; }
+[data-theme="dark"] .multi-select-item { color: #e2e8f0; }
+
+/* Booking form in dark */
+[data-theme="dark"] .booking-form-wrapper,
+[data-theme="dark"] .existing-bookings { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .existing-booking-item { border-color: #334155; background: #0f172a; }
+
+/* Conflict warning in dark */
+[data-theme="dark"] .conflict-warning { background: #451a03; border-color: #92400e; color: #fcd34d; }
+
+/* OTP section in dark */
+[data-theme="dark"] .otp-card { background: #1e293b; border-color: #334155; }
+
+/* Report filter in dark */
+[data-theme="dark"] .report-filters { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .filter-group label { color: #94a3b8; }
+
+/* Page header */
+[data-theme="dark"] .page-header { border-color: #334155; }
+[data-theme="dark"] .page-title { color: #f1f5f9; }
+
+/* Admin modal in dark */
+[data-theme="dark"] .admin-modal-overlay { background: rgba(0,0,0,0.7); }
+
+/* Section title */
+[data-theme="dark"] .section-title { color: #f1f5f9; }
+
+/* Hero - keep gradient */
+[data-theme="dark"] .hero { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); }
+
+/* Back link */
+[data-theme="dark"] .back-link { color: #64748b; }
+[data-theme="dark"] .back-link:hover { color: #3b82f6; }
+
+/* Room header */
+[data-theme="dark"] .room-header-info,
+[data-theme="dark"] .room-header-legend { color: #e2e8f0; }
+
+/* Calendar nav */
+[data-theme="dark"] .calendar-nav { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); }

@@ -48,26 +48,76 @@ data/
 
 ---
 
-## 🔐 Microsoft 365 Configuration / Microsoft 365 設定
+## 🌙 Dark Mode / Night Mode
 
-To enable real Microsoft 365 authentication:
+The system supports three theme modes accessible via the **💻 Theme** button in the top navigation bar:
 
-1. Register your app at [Azure Portal](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps)
-2. Open `js/msal-auth.js`
-3. Replace the placeholder values:
-   ```javascript
-   const MSAL_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';   // Your Application (client) ID
-   const MSAL_TENANT_ID = 'YOUR_TENANT_ID_HERE';   // Your Directory (tenant) ID
-   const DEMO_MODE = false;                          // Set to false for real auth
-   ```
-4. Uncomment the MSAL.js CDN script in the HTML files
-5. Add your redirect URI in Azure AD app registration
+| Mode | Description |
+|------|-------------|
+| ☀️ Light | Always light theme |
+| 🌙 Dark | Always dark theme |
+| 💻 System | Follows your OS/browser preference |
 
-**Demo Mode:** Without real Azure AD credentials, the system runs in demo mode where you can simulate login by selecting any employee from a dropdown.
+- **How to use:** Click the theme icon (☀️/🌙/💻) in the top-right of the navbar, then select your preferred mode.
+- **Persistence:** Your choice is saved in `localStorage` and survives page refresh and navigation.
+- **Coverage:** Dark mode covers all UI components: navbar, cards, tables, forms, modals, badges, calendar cells, status indicators, toasts, and dropdowns.
 
 ---
 
-## 🌍 Supported Languages / 支援語言
+## 🔐 Microsoft Entra ID (Azure AD) Configuration
+
+Settings are now managed via the **Admin Panel → ⚙️ Settings tab** (no code editing needed):
+
+1. Go to **Admin Panel** (`admin.html`) → **⚙️ Settings** tab
+2. Under **Microsoft Entra ID** section, fill in:
+   - **Tenant ID**: Your Azure AD Directory (tenant) ID
+   - **Client ID**: Your App Registration Application (client) ID
+   - **Redirect URI**: Pre-filled with current page origin (edit if needed)
+   - **Scopes**: Default `User.Read openid profile email` (edit if needed)
+   - **Demo Mode**: Toggle on/off — when ON, uses simulated login instead of real Azure AD
+3. Click **💾 Save Settings** — values are stored in `localStorage` and read by `msal-auth.js` at runtime.
+4. Use **🔐 Test Login** to verify the configuration immediately.
+5. Use **🔄 Reset to Defaults** to clear custom settings.
+
+> ⚠️ **Security Note:** These settings are stored in browser `localStorage`. This is a demo architecture — do **not** use this approach in a production system. The Tenant ID and Client ID are not sensitive secrets, but they should still be handled carefully.
+
+**Demo Mode (default):** Without real Azure AD credentials, the system runs in demo mode where you can simulate login by selecting any employee from a dropdown.
+
+---
+
+## 📧 SMTP Settings (Admin Panel)
+
+Configure email sender details in **Admin Panel → ⚙️ Settings tab → SMTP Email Settings**:
+
+| Field | Description |
+|-------|-------------|
+| SMTP Host | Mail server hostname (e.g. `smtp.gmail.com`) |
+| SMTP Port | Server port (e.g. `587` for STARTTLS, `465` for SSL) |
+| Encryption | None / SSL / TLS / STARTTLS |
+| Username | Login username for the mail server |
+| Password | Login password (masked display) |
+| From Name | Display name shown as email sender |
+| From Email | Sender email address shown in email previews |
+
+- **Send Test Email:** Enter a recipient email and click **📤 Send Test** to send a simulated test email.
+- When `From Name` / `From Email` are configured, all email previews will show these as the sender.
+- The email delivery is **simulated** (no real SMTP connection is made — emails open via `mailto:` or display in a modal). This field sets the display name/address in the preview.
+
+> ⚠️ **Security Warning:** Storing SMTP credentials (username/password) in `localStorage` is **NOT secure**. This is intended for demo/testing purposes only. In a real system, email sending must be handled server-side.
+
+---
+
+## 🌍 Language Switching / 語言切換
+
+All text across all pages now switches when you change the language:
+
+- **Static text** (navbar, buttons, labels, table headers, page titles) — uses `data-i18n` attributes
+- **Dynamic text** (calendar cells, booking listings, toast messages, email previews, modals, error messages) — uses `I18N.t('key')` lookups
+- **Placeholders** — use `data-i18n-placeholder` attributes
+- **Language change event** — dispatches `languagechange` CustomEvent; all dynamic components re-render automatically
+- **Fallback** — missing translations fall back to English, with a console warning
+
+**Supported languages:**
 
 | Code | Language |
 |------|----------|
@@ -79,6 +129,8 @@ To enable real Microsoft 365 authentication:
 | `fr` | Français French |
 | `es` | Español Spanish |
 
+Language preference is stored in `localStorage` and persists across sessions and page navigations.
+
 ---
 
 ## 📊 Features / 功能
@@ -87,13 +139,14 @@ To enable real Microsoft 365 authentication:
 - **Monthly Calendar:** Color-coded day availability (🟢 Available, 🟡 Partial, 🔴 Full)
 - **Booking System:** Add/Edit/Cancel with OTP email verification
 - **Microsoft 365 SSO:** Auto-fill employee details from M365 account
-- **Email Simulation:** mailto links + modal preview + localStorage audit log
-- **Admin Panel:** Full CRUD for all master data (companies, rooms, departments, employees, equipment)
+- **Email Simulation:** mailto links + modal preview + localStorage audit log (with configurable From address)
+- **Admin Panel:** Full CRUD for all master data (companies, rooms, departments, employees, equipment) + Settings (Entra ID + SMTP)
 - **Reports:**
   - My Bookings (filterable, printable, CSV export)
   - Room Booking History with stats
   - Utilization bar chart (Chart.js)
-- **Multilingual:** 7 languages with language switcher
+- **Dark / Light / System Theme:** Toggle in navbar, saved to localStorage
+- **Full Multilingual:** 7 languages, all dynamic + static text covered, persists across sessions
 - **Responsive:** Works on desktop, tablet, and mobile
 
 ---

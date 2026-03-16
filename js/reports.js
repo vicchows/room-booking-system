@@ -310,5 +310,16 @@ const REPORTS = {
 
   printReport() {
     window.print();
-  }
+  },
+
+  onLangChange() {
+    // Re-apply translations to static elements
+    I18N.applyToPage();
+    // Re-render current active tab content
+    const activeTab = document.querySelector('.report-tab.active');
+    if (activeTab) {
+      const tabName = activeTab.getAttribute('data-tab');
+      this.showTab(tabName);
+    }
+  },
 };
